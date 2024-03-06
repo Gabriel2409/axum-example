@@ -8,6 +8,7 @@ use axum::{
     Router,
 };
 use serde::Deserialize;
+use tower_cookies::CookieManagerLayer;
 use tower_http::services::ServeDir;
 
 mod error;
@@ -18,8 +19,9 @@ async fn main() {
     let routes_all = Router::new()
         .merge(routes_hello())
         .merge(web::routes_login::routes())
-        // middleware
+        // middleware: layers are executed from bottom up
         .layer(middleware::map_response(main_response_mapper))
+        .layer(CookieManagerLayer::new())
         // because of overlaps, we don't merge but fallback instead
         .fallback_service(routes_static());
 

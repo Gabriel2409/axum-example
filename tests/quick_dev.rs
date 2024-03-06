@@ -13,8 +13,8 @@ async fn quick_dev() -> Result<()> {
         "/api/login",
         json!({
             "username":"admin",
-            // "pwd": "password",
-            "pwd": "wrongpassword",
+            "pwd": "password",
+            // "pwd": "wrongpassword",
         }),
     );
 
