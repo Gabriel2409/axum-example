@@ -20,6 +20,7 @@ async fn quick_dev() -> Result<()> {
 
     req_login.await?.print().await?;
 
+    // only works if i login first
     let req_create_ticket = hc.do_post(
         "/api/tickets",
         json!({ "title": "Ticket AAA"

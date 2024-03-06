@@ -21,11 +21,15 @@ async fn main() -> Result<()> {
     // Initialize ModelController
     let mc = ModelController::new().await?;
 
+    let routes_api = web::routes_tickets::routes(mc.clone())
+        // apply middleware only for these routes
+        .route_layer(middleware::from_fn(web::mw_auth::mw_require_auth));
+
     let routes_all = Router::new()
         .merge(routes_hello())
         .merge(web::routes_login::routes())
         // merge but adds a prefix
-        .nest("/api", web::routes_tickets::routes(mc.clone()))
+        .nest("/api", routes_api)
         // middleware: layers are executed from bottom up
         .layer(middleware::map_response(main_response_mapper))
         .layer(CookieManagerLayer::new())
@@ -33,6 +37,7 @@ async fn main() -> Result<()> {
         .fallback_service(routes_static());
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
+    println!("{:<12} - {:?}\n", "LISTENING", listener.local_addr());
     axum::serve(listener, routes_all).await.unwrap();
 
     Ok(())
