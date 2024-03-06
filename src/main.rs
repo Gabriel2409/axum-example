@@ -1,3 +1,5 @@
+pub use self::error::{Error, Result};
+
 use axum::{
     extract::{Path, Query},
     response::{Html, IntoResponse},
@@ -7,10 +9,14 @@ use axum::{
 use serde::Deserialize;
 use tower_http::services::ServeDir;
 
+mod error;
+mod web;
+
 #[tokio::main]
 async fn main() {
     let routes_all = Router::new()
         .merge(routes_hello())
+        .merge(web::routes_login::routes())
         // because of overlaps, we don't merge but fallback instead
         .fallback_service(routes_static());
 
@@ -43,7 +49,9 @@ async fn handler_hello(Query(params): Query<HelloParams>) -> impl IntoResponse {
 }
 
 // /hello2/Mike
-async fn handler_hello2(Path(name): Path<String>) -> impl IntoResponse {
+// Note that Axum allows you to return Results as long as Ok and Err implements
+// intoResponse
+async fn handler_hello2(Path(name): Path<String>) -> Result<impl IntoResponse> {
     println!("->> {:<12} - handler_hello2 - {name:?}", "HANDLER");
-    Html(format!("Hello <strong>{name}!!</strong>"))
+    Ok(Html(format!("Hello <strong>{name}!!</strong>")))
 }
