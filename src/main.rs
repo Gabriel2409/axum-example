@@ -2,7 +2,8 @@ pub use self::error::{Error, Result};
 
 use axum::{
     extract::{Path, Query},
-    response::{Html, IntoResponse},
+    middleware,
+    response::{Html, IntoResponse, Response},
     routing::{get, get_service},
     Router,
 };
@@ -17,11 +18,19 @@ async fn main() {
     let routes_all = Router::new()
         .merge(routes_hello())
         .merge(web::routes_login::routes())
+        // middleware
+        .layer(middleware::map_response(main_response_mapper))
         // because of overlaps, we don't merge but fallback instead
         .fallback_service(routes_static());
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
     axum::serve(listener, routes_all).await.unwrap();
+}
+
+async fn main_response_mapper(res: Response) -> Response {
+    println!("->> {:<12} - main_response_mapper", "RES_MAPPER");
+    println!(); // empty line between requests
+    res
 }
 
 /// allows to fallback to serving files: we have to provide the path to the file
