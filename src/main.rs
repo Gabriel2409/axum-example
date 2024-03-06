@@ -7,6 +7,7 @@ use axum::{
     routing::{get, get_service},
     Router,
 };
+use model::ModelController;
 use serde::Deserialize;
 use tower_cookies::CookieManagerLayer;
 use tower_http::services::ServeDir;
@@ -16,10 +17,15 @@ mod model;
 mod web;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
+    // Initialize ModelController
+    let mc = ModelController::new().await?;
+
     let routes_all = Router::new()
         .merge(routes_hello())
         .merge(web::routes_login::routes())
+        // merge but adds a prefix
+        .nest("/api", web::routes_tickets::routes(mc.clone()))
         // middleware: layers are executed from bottom up
         .layer(middleware::map_response(main_response_mapper))
         .layer(CookieManagerLayer::new())
@@ -28,6 +34,8 @@ async fn main() {
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
     axum::serve(listener, routes_all).await.unwrap();
+
+    Ok(())
 }
 
 async fn main_response_mapper(res: Response) -> Response {

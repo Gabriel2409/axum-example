@@ -16,7 +16,9 @@ pub struct TicketForCreate {
 #[derive(Clone)]
 pub struct ModelController {
     // only for quick prototyping
-    // clone only clone the Arc and Mutex protects the vector
+    // clone only clone the Arc. Then Mutex protects the vector
+    // So even if we clone the mc multiple times, the underlying tickets_store
+    // is the same for all cloned objects
     tickets_store: Arc<Mutex<Vec<Option<Ticket>>>>,
 }
 
