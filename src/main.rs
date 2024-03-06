@@ -9,12 +9,16 @@ use serde::Deserialize;
 
 #[tokio::main]
 async fn main() {
-    let routes_hello = Router::new()
-        .route("/hello", get(handler_hello))
-        .route("/hello2/:name", get(handler_hello2));
+    let routes_all = Router::new().merge(routes_hello());
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
-    axum::serve(listener, routes_hello).await.unwrap();
+    axum::serve(listener, routes_all).await.unwrap();
+}
+
+fn routes_hello() -> Router {
+    Router::new()
+        .route("/hello", get(handler_hello))
+        .route("/hello2/:name", get(handler_hello2))
 }
 
 #[derive(Debug, Deserialize)]
