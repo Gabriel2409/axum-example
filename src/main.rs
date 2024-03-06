@@ -1,18 +1,27 @@
 use axum::{
-    extract::Path,
-    extract::Query,
+    extract::{Path, Query},
     response::{Html, IntoResponse},
-    routing::get,
+    routing::{get, get_service},
     Router,
 };
 use serde::Deserialize;
+use tower_http::services::ServeDir;
 
 #[tokio::main]
 async fn main() {
-    let routes_all = Router::new().merge(routes_hello());
+    let routes_all = Router::new()
+        .merge(routes_hello())
+        // because of overlaps, we don't merge but fallback instead
+        .fallback_service(routes_static());
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
     axum::serve(listener, routes_all).await.unwrap();
+}
+
+/// allows to fallback to serving files: we have to provide the path to the file
+/// in the url, for ex /src/main.rs
+fn routes_static() -> Router {
+    Router::new().nest_service("/", get_service(ServeDir::new("./")))
 }
 
 fn routes_hello() -> Router {
