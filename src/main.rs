@@ -33,6 +33,12 @@ async fn main() -> Result<()> {
         .nest("/api", routes_api)
         // middleware: layers are executed from bottom up
         .layer(middleware::map_response(main_response_mapper))
+        // mw_ctx_resolver stores ctx in the request. This is an expensive operation so
+        // that is why we want to only do it once
+        .layer(middleware::from_fn_with_state(
+            mc.clone(),
+            web::mw_auth::mw_ctx_resolver,
+        ))
         .layer(CookieManagerLayer::new())
         // because of overlaps, we don't merge but fallback instead
         .fallback_service(routes_static());
