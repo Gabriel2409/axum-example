@@ -1,12 +1,16 @@
+use crate::log::log_request;
+
 pub use self::error::{Error, Result};
 
 use axum::{
     extract::{Path, Query},
+    http::{Method, Uri},
     middleware,
     response::{Html, IntoResponse, Response},
     routing::{get, get_service},
     Json, Router,
 };
+use ctx::Ctx;
 use model::ModelController;
 use serde::Deserialize;
 use serde_json::json;
@@ -16,6 +20,7 @@ use uuid::Uuid;
 
 mod ctx;
 mod error;
+mod log;
 mod model;
 mod web;
 
@@ -54,7 +59,12 @@ async fn main() -> Result<()> {
 
 /// Checks if there is an error and returns it as a JSON response.
 /// If there is no error, just returns the Response.
-async fn main_response_mapper(res: Response) -> Response {
+async fn main_response_mapper(
+    ctx: Option<Ctx>,
+    uri: Uri,
+    req_method: Method,
+    res: Response,
+) -> Response {
     println!("->> {:<12} - main_response_mapper", "RES_MAPPER");
 
     let uuid = Uuid::new_v4();
@@ -80,8 +90,9 @@ async fn main_response_mapper(res: Response) -> Response {
             (*status_code, Json(client_error_body)).into_response()
         });
 
-    // -- TODO: Build and log the server log line
-    println!("    ->> server log line - {uuid} - Error: {service_error:?}");
+    let client_error = client_status_error.unzip().1; // Option<ClientError>
+
+    log_request(uuid, req_method, uri, ctx, service_error, client_error).await;
 
     println!();
     error_response.unwrap_or(res)
