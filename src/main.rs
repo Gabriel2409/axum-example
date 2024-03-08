@@ -43,9 +43,10 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
+/// Adds an empty line between requests
 async fn main_response_mapper(res: Response) -> Response {
     println!("->> {:<12} - main_response_mapper", "RES_MAPPER");
-    println!(); // empty line between requests
+    println!();
     res
 }
 

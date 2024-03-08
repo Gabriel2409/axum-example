@@ -15,10 +15,20 @@ pub struct TicketForCreate {
 
 #[derive(Clone)]
 pub struct ModelController {
-    // only for quick prototyping
-    // clone only clone the Arc. Then Mutex protects the vector
-    // So even if we clone the mc multiple times, the underlying tickets_store
-    // is the same for all cloned objects
+    // `tickets_store` is an Arc (atomic reference count) wrapping a Mutex, which
+    // protects a vector of optional tickets.
+    //
+    // The Arc allows multiple ownership of the underlying data, ensuring that
+    // even if we clone the `ModelController` multiple times, they all share the
+    // same underlying `tickets_store`.
+    //
+    // The Mutex ensures exclusive access to the vector. This means that even though
+    // multiple `ModelController` instances share the same data, access to the vector
+    // is synchronized, preventing data races and ensuring safe concurrent access.
+    //
+    // So, cloning a `ModelController` results in a new instance that shares the
+    // same underlying data, providing a convenient way to work with shared state
+    // while ensuring thread safety.
     tickets_store: Arc<Mutex<Vec<Option<Ticket>>>>,
 }
 
@@ -53,6 +63,7 @@ impl ModelController {
 
         Ok(tickets)
     }
+
     pub async fn delete_ticket(&self, id: u64) -> Result<Ticket> {
         let mut store = self.tickets_store.lock().unwrap();
 
