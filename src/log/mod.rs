@@ -14,7 +14,7 @@ pub async fn log_request(
     req_method: Method,
     uri: Uri,
     ctx: Option<Ctx>,
-    service_error: Option<&Error>,
+    web_error: Option<&Error>,
     client_error: Option<ClientError>,
 ) -> Result<()> {
     let timestamp = SystemTime::now()
@@ -22,8 +22,8 @@ pub async fn log_request(
         .unwrap()
         .as_millis();
 
-    let error_type = service_error.map(|se| se.as_ref().to_string());
-    let error_data = serde_json::to_value(service_error)
+    let error_type = web_error.map(|se| se.as_ref().to_string());
+    let error_data = serde_json::to_value(web_error)
         .ok()
         .and_then(|mut v| v.get_mut("data").map(|v| v.take()));
 
@@ -31,13 +31,13 @@ pub async fn log_request(
         uuid: uuid.to_string(),
         timestamp: timestamp.to_string(),
         user_id: ctx.map(|c| c.user_id()),
-        req_path: uri.to_string(),
-        req_method: req_method.to_string(),
+        http_path: uri.to_string(),
+        http_method: req_method.to_string(),
         client_error_type: client_error.map(|ce| ce.as_ref().to_string()),
         error_type,
         error_data,
     };
-    println!("  ->> log_request: \n{}", json!(log_line));
+    println!("->> REQUEST LOG LINE:\n{}", json!(log_line));
 
     // TODO: - send to cloud watch
     Ok(())
@@ -53,8 +53,8 @@ struct RequestLogLine {
     user_id: Option<u64>,
 
     // -- http request attributes
-    req_path: String,
-    req_method: String,
+    http_path: String,
+    http_method: String,
 
     // -- Errors attributes
     client_error_type: Option<String>,
