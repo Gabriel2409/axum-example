@@ -14,7 +14,7 @@ pub enum Error {
     AuthFailCtxNotInRequestExt,
     AuthFailNoAuthTokenCookie,
     AuthFailTokenWrongFormat,
-    TicketDeleteFailIdNotFound { id: u64 },
+    TicketDeleteFailIdNotFound { id: i64 },
 }
 
 // Need to implement this so that we can return it directly from axum

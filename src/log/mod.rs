@@ -50,7 +50,7 @@ struct RequestLogLine {
     timestamp: String, // iso8601
 
     // -- user and context attribute
-    user_id: Option<u64>,
+    user_id: Option<i64>,
 
     // -- http request attributes
     http_path: String,
