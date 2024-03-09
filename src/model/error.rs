@@ -3,9 +3,7 @@ use serde::Serialize;
 pub type Result<T> = core::result::Result<T, Error>;
 
 #[derive(Debug, Serialize)]
-pub enum Error {
-    CtxCannotNewRootCtx,
-}
+pub enum Error {}
 
 // region:    --- Error Boilerplate
 impl core::fmt::Display for Error {
