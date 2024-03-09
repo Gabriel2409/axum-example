@@ -1,5 +1,5 @@
 [package]
-name = "axum-example"
+name = "rust-web-app"
 version = "0.1.0"
 edition = "2021"
 
@@ -16,6 +16,8 @@ strum_macros = "0.26.1"
 tokio = { version = "1.36.0", features = ["full"] }
 tower-cookies = "0.10.0"
 tower-http = { version = "0.5.2", features = ["fs"] }
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 uuid = { version = "1.7.0", features = ["v4", "fast-rng"] }
 
 [dev-dependencies]

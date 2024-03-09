@@ -17,11 +17,23 @@ use crate::web::{routes_login, routes_static};
 use axum::{middleware, Router};
 use std::net::SocketAddr;
 use tower_cookies::CookieManagerLayer;
+use tracing::info;
+use tracing_subscriber::EnvFilter;
 
 // endregion: --- Modules
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    tracing_subscriber::fmt()
+        .without_time() // omits timestamps from logs
+        .with_target(false) // don't show file
+        // filter logs based on the RUST_LOG env var
+        // for ex with RUST_LOG=info,my_crate=debug
+        // we would only use log info or above except for my_crate module
+        // where we log debug or above
+        .with_env_filter(EnvFilter::from_default_env())
+        .init();
+
     // Initialize ModelManager.
     let mm = ModelManager::new().await?;
 
@@ -39,7 +51,7 @@ async fn main() -> Result<()> {
 
     // region:    --- Start Server
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
-    println!("{:<12} - {:?}\n", "LISTENING", listener.local_addr());
+    info!("{:<12} - {:?}\n", "LISTENING", listener.local_addr());
     axum::serve(listener, routes_all).await.unwrap();
     // endregion: --- Start Server
 

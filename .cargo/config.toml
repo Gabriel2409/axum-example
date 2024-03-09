@@ -1,0 +1,9 @@
+# Cargo config file
+
+
+# env var set for all `cargo ...` commands
+[env]
+
+
+# here we only log for the rust-web-app crate
+RUST_LOG = "rust_web_app=debug"
