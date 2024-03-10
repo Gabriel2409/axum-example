@@ -7,3 +7,12 @@
 
 # here we only log for the rust-web-app crate
 RUST_LOG = "rust_web_app=debug"
+
+# -- Service environment variables
+# For cargo commands only
+# for deployed env, should be managed by container (eg k8s)
+
+# -- ConfigMap
+
+# in dev, relative to Cargo.toml. In prod, you may want to use abs path
+SERVICE_WEB_FOLDER = "web-folder/"

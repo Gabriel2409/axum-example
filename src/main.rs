@@ -2,14 +2,22 @@
 
 // region:    --- Modules
 
+// submodules first
+mod config;
 mod ctx;
 mod error;
 mod log;
 mod model;
 mod web;
 
+// then reexports
+// NOTE: for reexports, you can start with crate:: so that it starts at the root
+// module, self:: so that it starts at the current module or nothing (implicit, depends
+// if you are on main.rs or not)
 pub use self::error::{Error, Result};
+pub use config::config;
 
+// then imports
 use crate::model::ModelManager;
 use crate::web::mw_auth::mw_ctx_resolve;
 use crate::web::mw_res_map::mw_reponse_map;
