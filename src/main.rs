@@ -10,6 +10,9 @@ mod log;
 mod model;
 mod web;
 
+// #[cfg(test)] // Commented only for early development.
+pub mod _dev_utils;
+
 // then reexports
 // NOTE: for reexports, you can start with crate:: so that it starts at the root
 // module, self:: so that it starts at the current module or nothing (implicit, depends
@@ -41,6 +44,9 @@ async fn main() -> Result<()> {
         // where we log debug or above
         .with_env_filter(EnvFilter::from_default_env())
         .init();
+
+    // -- FIXME: FOR DEV ONLY
+    _dev_utils::init_dev().await;
 
     // Initialize ModelManager.
     let mm = ModelManager::new().await?;
