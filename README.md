@@ -9,3 +9,10 @@ https://www.youtube.com/watch?v=3cA_mk4vdWY&list=PL7r-PXl6ZPcCIOFaL7nVHXZvBmHNhr
 
 - (optional) For pg to print all sql statements. In psql command line started above:
   `ALTER DATABASE postgres SET log_statement = 'all';`
+
+# Design
+
+![web_model_layer](web_model_layer.png)
+
+Idea is to have auth at the web layer to provide a context.
+Then all privileges are done at the model layer, and assume context is provided
