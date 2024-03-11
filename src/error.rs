@@ -25,5 +25,6 @@ impl core::fmt::Display for Error {
     }
 }
 
+// allows to use ?
 impl std::error::Error for Error {}
 // endregion: --- Error Boilerplate

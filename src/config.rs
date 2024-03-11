@@ -20,6 +20,8 @@ pub fn config() -> &'static Config {
 
 #[allow(non_snake_case)]
 pub struct Config {
+    // -- DB
+    pub DB_URL: String,
     // -- Web
     pub WEB_FOLDER: String,
 }
@@ -30,6 +32,7 @@ impl Config {
     /// set beforehand. This is why we use the cargo config for dev
     fn load_from_env() -> Result<Config> {
         Ok(Config {
+            DB_URL: get_env("SERVICE_DB_URL")?,
             WEB_FOLDER: get_env("SERVICE_WEB_FOLDER")?,
         })
     }
