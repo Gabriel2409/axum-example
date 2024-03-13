@@ -2,71 +2,84 @@ use crate::ctx::Ctx;
 use crate::model::ModelManager;
 use crate::model::{Error, Result};
 use serde::{Deserialize, Serialize};
+use sqlb::Fields;
 use sqlx::FromRow;
 
-#[derive(Debug, Clone, FromRow, Serialize)]
+use crate::model::base;
+
+#[derive(Debug, Clone, Fields, FromRow, Serialize)]
 pub struct Task {
     pub id: i64,
     pub title: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Fields, Deserialize)]
 pub struct TaskForCreate {
     pub title: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Fields, Deserialize)]
 pub struct TaskForUpdate {
     pub title: Option<String>,
 }
 
 pub struct TaskBmc;
 
+impl base::DbBmc for TaskBmc {
+    const TABLE: &'static str = "task";
+}
+
 impl TaskBmc {
-    pub async fn create(_ctx: &Ctx, mm: &ModelManager, task_c: TaskForCreate) -> Result<i64> {
+    pub async fn create(ctx: &Ctx, mm: &ModelManager, task_c: TaskForCreate) -> Result<i64> {
         let db = mm.db();
-        // always do prepare statements to avoid sql injection
-        let (id,) =
-            sqlx::query_as::<_, (i64,)>("INSERT INTO task (title) values ($1) RETURNING id")
-                .bind(task_c.title)
-                .fetch_one(db)
-                .await?;
-        Ok(id)
+
+        // // always do prepare statements to avoid sql injection
+        // let (id,) =
+        //     sqlx::query_as::<_, (i64,)>("INSERT INTO task (title) values ($1) RETURNING id")
+        //         .bind(task_c.title)
+        //         .fetch_one(db)
+        //         .await?;
+        // Ok(id)
+        base::create::<Self, _>(ctx, mm, task_c).await
     }
 
-    pub async fn get(_ctx: &Ctx, mm: &ModelManager, id: i64) -> Result<Task> {
-        let db = mm.db();
-        let task: Task = sqlx::query_as("SELECT * FROM task WHERE id = $1")
-            .bind(id)
-            .fetch_optional(db)
-            .await?
-            .ok_or(Error::EntityNotFound { entity: "task", id })?;
-        Ok(task)
+    pub async fn get(ctx: &Ctx, mm: &ModelManager, id: i64) -> Result<Task> {
+        // compiler understands that _ is Task
+        base::get::<Self, _>(ctx, mm, id).await
     }
 
-    pub async fn list(_ctx: &Ctx, mm: &ModelManager) -> Result<Vec<Task>> {
+    pub async fn list(ctx: &Ctx, mm: &ModelManager) -> Result<Vec<Task>> {
         let db = mm.db();
 
-        let tasks: Vec<Task> = sqlx::query_as("SELECT * FROM task ORDER BY id")
-            .fetch_all(db)
-            .await?;
-
-        Ok(tasks)
+        // let tasks: Vec<Task> = sqlx::query_as("SELECT * FROM task ORDER BY id")
+        //     .fetch_all(db)
+        //     .await?;
+        base::list::<Self, _>(ctx, mm).await
     }
 
-    pub async fn delete(_ctx: &Ctx, mm: &ModelManager, id: i64) -> Result<()> {
+    pub async fn update(
+        ctx: &Ctx,
+        mm: &ModelManager,
+        id: i64,
+        task_u: TaskForUpdate,
+    ) -> Result<()> {
+        base::update::<Self, _>(ctx, mm, id, task_u).await
+    }
+
+    pub async fn delete(ctx: &Ctx, mm: &ModelManager, id: i64) -> Result<()> {
         let db = mm.db();
-        let count = sqlx::query("DELETE FROM task WHERE id = $1")
-            .bind(id)
-            .execute(db)
-            .await?
-            .rows_affected();
-
-        if count == 0 {
-            return Err(Error::EntityNotFound { entity: "task", id });
-        }
-
-        Ok(())
+        // let count = sqlx::query("DELETE FROM task WHERE id = $1")
+        //     .bind(id)
+        //     .execute(db)
+        //     .await?
+        //     .rows_affected();
+        //
+        // if count == 0 {
+        //     return Err(Error::EntityNotFound { entity: "task", id });
+        // }
+        //
+        // Ok(())
+        base::delete::<Self>(ctx, mm, id).await
     }
 }
 
@@ -152,6 +165,31 @@ mod tests {
         Ok(())
     }
 
+    #[serial]
+    #[tokio::test]
+    async fn test_update_ok() -> Result<()> {
+        let mm = _dev_utils::init_test().await;
+        let ctx = Ctx::root_ctx();
+        let fx_title = "test_update_ok-task 01";
+        let fx_title_new = "test_update_ok-task 01-new";
+        let fx_task = _dev_utils::seed_tasks(&ctx, &mm, &[fx_title])
+            .await?
+            .remove(0); // takes out the task
+
+        TaskBmc::update(
+            &ctx,
+            &mm,
+            fx_task.id,
+            TaskForUpdate {
+                title: Some(fx_title_new.to_string()),
+            },
+        )
+        .await?;
+
+        let task = TaskBmc::get(&ctx, &mm, fx_task.id).await?;
+        assert_eq!(task.title, fx_title_new);
+        Ok(())
+    }
     #[serial]
     #[tokio::test]
     async fn test_delete_err_not_found() -> Result<()> {
