@@ -18,6 +18,13 @@ RUST_LOG = "rust_web_app=debug"
 # encryption is not needed as it will be handled by the container service in prod
 
 SERVICE_DB_URL = "postgres://app_user:dev_only_pwd@localhost/app_db"
+
+# generated with cargo run --example gen_key.rs
+# Note that in k8s, secrets are also base64
+SERVICE_PWD_KEY = "fkgS3mqQJNuCgmbYHGB2hBvQSyuaNj7bq--DMQ62Kz9J2QO6FxytKruQPt5J2tzFxGQnRdYkYnumeyHdavoX1Q"
+SERVICE_TOKEN_KEY = "KQO_xQrl-vFyncL7R9KeTN8baXOxFzKnX7a0kgOulXw9jKCqz2zbP4PhBRNr6cOxkjNA--e-Fb5RNrM2z_pOmA"
+SERVICE_TOKEN_DURATION_SEC = "1800"                                                                          # 30 mins
+
 ## -- ConfigMap
 
 # in dev, relative to Cargo.toml. In prod, you may want to use abs path
