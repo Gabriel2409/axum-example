@@ -9,6 +9,7 @@ mod ctx;
 mod error;
 mod log;
 mod model;
+mod utils;
 mod web;
 
 // #[cfg(test)] // Commented only for early development.
@@ -19,11 +20,13 @@ pub mod _dev_utils;
 // module, self:: so that it starts at the current module or nothing (implicit, depends
 // if you are on main.rs or not)
 pub use self::error::{Error, Result};
+use axum::response::Html;
+use axum::routing::get;
 pub use config::config;
 
 // then imports
 use crate::model::ModelManager;
-use crate::web::mw_auth::mw_ctx_resolve;
+use crate::web::mw_auth::{mw_ctx_require, mw_ctx_resolve};
 use crate::web::mw_res_map::mw_reponse_map;
 use crate::web::{routes_login, routes_static};
 use axum::{middleware, Router};
@@ -56,8 +59,13 @@ async fn main() -> Result<()> {
     // let routes_rpc = rpc::routes(mm.clone())
     //   .route_layer(middleware::from_fn(mw_ctx_require));
 
+    let routes_hello = Router::new()
+        .route("/hello", get(|| async { Html("Hello world") }))
+        .route_layer(middleware::from_fn(mw_ctx_require));
+
     let routes_all = Router::new()
         .merge(routes_login::routes(mm.clone()))
+        .merge(routes_hello)
         // .nest("/api", routes_rpc)
         .layer(middleware::map_response(mw_reponse_map))
         .layer(middleware::from_fn_with_state(mm.clone(), mw_ctx_resolve))
