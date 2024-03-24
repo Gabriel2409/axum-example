@@ -1,12 +1,24 @@
 use crate::ctx::Ctx;
 use crate::model::ModelManager;
 use crate::model::{Error, Result};
-use sqlb::HasFields;
+use modql::field::HasFields;
+use modql::SIden;
+use sea_query::{Expr, Iden, IntoIden, PostgresQueryBuilder, Query, TableRef};
+use sea_query_binder::SqlxBinder;
 use sqlx::postgres::PgRow;
 use sqlx::FromRow;
 
+#[derive(Iden)]
+pub enum CommonIden {
+    Id,
+}
+
 pub trait DbBmc {
     const TABLE: &'static str;
+
+    fn table_ref() -> TableRef {
+        TableRef::Table(SIden(Self::TABLE).into_iden())
+    }
 }
 
 pub async fn create<MC, E>(_ctx: &Ctx, mm: &ModelManager, data: E) -> Result<i64>
@@ -15,13 +27,25 @@ where
     E: HasFields,
 {
     let db = mm.db();
+    // Extract fields
     let fields = data.not_none_fields();
-    let (id,) = sqlb::insert()
-        .table(MC::TABLE)
-        .data(fields)
-        .returning(&["id"])
-        .fetch_one::<_, (i64,)>(db)
+
+    let (columns, sea_values) = fields.for_sea_insert();
+
+    // build query with seaquery - seaquery actually works across db drivers
+    let mut query = Query::insert();
+    query
+        .into_table(MC::table_ref())
+        .columns(columns)
+        .values(sea_values)?
+        .returning(Query::returning().columns([CommonIden::Id]));
+
+    // Execute query with sqlx
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    let (id,) = sqlx::query_as_with::<_, (i64,), _>(&sql, values)
+        .fetch_one(db)
         .await?;
+
     Ok(id)
 }
 
@@ -42,19 +66,41 @@ where
     // let entity: E = sqlx::query_as(&sql)
     //     .bind(id)
     // ----------
+
     // snippet with sqlb
     // by default sqlb will do a select *
-    let entity: E = sqlb::select()
-        .table(MC::TABLE)
-        .columns(E::field_names()) // specific to sqlb, only select relevant fields
-        .and_where("id", "=", id)
-        // ----------
+    // let entity: E = sqlb::select()
+    //     .table(MC::TABLE)
+    //     .columns(E::field_names()) // specific to sqlb, only select relevant fields
+    //     .and_where("id", "=", id)
+    //     // ----------
+    //     .fetch_optional(db)
+    //     .await?
+    //     .ok_or(Error::EntityNotFound {
+    //         entity: MC::TABLE,
+    //         id,
+    //     })?;
+    // -------------------------------
+
+    // snippet with seaquery + sqlx
+    //
+
+    let mut query = Query::select();
+    query
+        .from(MC::table_ref())
+        .columns(E::field_column_refs())
+        .and_where(Expr::col(CommonIden::Id).eq(id));
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+
+    let entity = sqlx::query_as_with::<_, E, _>(&sql, values)
         .fetch_optional(db)
         .await?
         .ok_or(Error::EntityNotFound {
             entity: MC::TABLE,
             id,
         })?;
+
     Ok(entity)
 }
 
@@ -66,13 +112,15 @@ where
 {
     let db = mm.db();
 
-    let entities: Vec<E> = sqlb::select()
-        .table(MC::TABLE)
-        .columns(E::field_names()) // specific to sqlb, only select relevant fields
-        // ----------
-        .order_by("id")
+    let mut query = Query::select();
+    query.from(MC::table_ref()).columns(E::field_column_refs());
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+
+    let entities = sqlx::query_as_with::<_, E, _>(&sql, values)
         .fetch_all(db)
         .await?;
+
     Ok(entities)
 }
 
@@ -82,15 +130,25 @@ where
     E: HasFields,
 {
     let db = mm.db();
+    // -- prep data
     let fields = data.not_none_fields();
-    let count = sqlb::update()
-        .table(MC::TABLE)
-        .and_where("id", "=", id)
-        .data(fields)
-        .returning(&["id"])
-        .exec(db)
-        .await?;
+    let fields = fields.for_sea_update();
 
+    // -- build query
+    let mut query = Query::update();
+    query
+        .table(MC::table_ref())
+        .values(fields)
+        .and_where(Expr::col(CommonIden::Id).eq(id));
+
+    // -- exec query
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    let count = sqlx::query_with(&sql, values)
+        .execute(db)
+        .await?
+        .rows_affected();
+
+    // -- check result
     if count == 0 {
         Err(Error::EntityNotFound {
             entity: MC::TABLE,
@@ -106,11 +164,16 @@ where
     MC: DbBmc,
 {
     let db = mm.db();
-    let count = sqlb::delete()
-        .table(MC::TABLE)
-        .and_where("id", "=", id)
-        .exec(db)
-        .await?;
+    let mut query = Query::delete();
+    query
+        .from_table(MC::table_ref())
+        .and_where(Expr::col(CommonIden::Id).eq(id));
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    let count = sqlx::query_with(&sql, values)
+        .execute(db)
+        .await?
+        .rows_affected();
 
     if count == 0 {
         Err(Error::EntityNotFound {
