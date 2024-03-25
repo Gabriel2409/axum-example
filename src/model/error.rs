@@ -13,6 +13,10 @@ pub enum Error {
         entity: &'static str,
         id: i64,
     },
+    ListLimitOverMax {
+        max: i64,
+        actual: i64,
+    },
     // -- Modules
     // instead of manually implmenting From, we can use derive_more::From trait
     #[from]
@@ -29,6 +33,9 @@ pub enum Error {
 
     #[from]
     SeaQuery(#[serde_as(as = "DisplayFromStr")] sea_query::error::Error),
+
+    #[from]
+    ModqlIntoSea(#[serde_as(as = "DisplayFromStr")] modql::filter::IntoSeaError),
 }
 
 // Below lines not needed anymore now that we use From trait from derive_more
