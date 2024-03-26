@@ -1,3 +1,4 @@
+mod params;
 mod task_rpc;
 
 use std::sync::Arc;
@@ -20,25 +21,6 @@ struct RpcRequest {
     id: Option<Value>,
     method: String,
     params: Option<Value>,
-}
-
-/// All apis that want to create something
-#[derive(Deserialize)]
-pub struct ParamsForCreate<D> {
-    data: D,
-}
-
-/// All apis that want to update something
-#[derive(Deserialize)]
-pub struct ParamsForUpdate<D> {
-    id: i64,
-    data: D,
-}
-
-/// All apis that only need the id
-#[derive(Deserialize)]
-pub struct ParamsIded {
-    id: i64,
 }
 
 pub fn routes(mm: ModelManager) -> Router {
@@ -85,6 +67,7 @@ macro_rules! exec_rpc_fn {
         $rpc_fn($ctx, $mm, params).await.map(to_value)??
     }};
     // Without params
+    // OBSOLETE NOW?
     ($rpc_fn:expr, $ctx:expr, $mm:expr) => {
         $rpc_fn($ctx, $mm).await.map(to_value)??
     };
@@ -118,7 +101,7 @@ async fn _rpc_handler(ctx: Ctx, mm: ModelManager, rpc_req: RpcRequest) -> Result
         //     list_tasks(ctx, mm).await.map(to_value)??
         // }
         "create_task" => exec_rpc_fn!(create_task, ctx, mm, rpc_params),
-        "list_tasks" => exec_rpc_fn!(list_tasks, ctx, mm),
+        "list_tasks" => exec_rpc_fn!(list_tasks, ctx, mm, rpc_params),
         "update_task" => exec_rpc_fn!(update_task, ctx, mm, rpc_params),
         "delete_task" => exec_rpc_fn!(delete_task, ctx, mm, rpc_params),
 
